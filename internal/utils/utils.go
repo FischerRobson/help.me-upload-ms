@@ -1,4 +1,4 @@
-package api
+package utils
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func sendJSON(w http.ResponseWriter, rawData any, statusCode ...int) {
+func SendJSON(w http.ResponseWriter, rawData any, statusCode ...int) {
 	code := http.StatusOK
 	if len(statusCode) > 0 {
 		code = statusCode[0]
@@ -18,8 +18,7 @@ func sendJSON(w http.ResponseWriter, rawData any, statusCode ...int) {
 	_, _ = w.Write(data)
 }
 
-func normalizeFilename(filename string) string {
-	// Replace spaces with hyphens and remove special characters
+func NormalizeFilename(filename string) string {
 	re := regexp.MustCompile(`[^a-zA-Z0-9_.-]+`)
 	normalizedFilename := re.ReplaceAllString(filename, "-")
 	normalizedFilename = strings.ToLower(normalizedFilename)

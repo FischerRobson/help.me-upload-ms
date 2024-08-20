@@ -2,14 +2,22 @@ package main
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
 
 	"github.com/FischerRobson/help.me-upload/internal/api"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
 	handler := api.NewHandler()
 
 	go func() {
