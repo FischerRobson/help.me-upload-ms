@@ -8,6 +8,7 @@ import (
 	"os/signal"
 
 	"github.com/FischerRobson/help.me-upload/internal/api"
+	"github.com/FischerRobson/help.me-upload/internal/rabbitmq"
 	"github.com/joho/godotenv"
 )
 
@@ -20,7 +21,13 @@ func main() {
 		}
 	}
 
-	handler := api.NewHandler()
+	rabbitMQService, err := rabbitmq.NewRabbitMQService()
+	if err != nil {
+		log.Fatalf("Failed to initialize RabbitMQ: %v", err)
+	}
+	defer rabbitMQService.Close()
+
+	handler := api.NewHandler(rabbitMQService)
 
 	go func() {
 		if err := http.ListenAndServe(":8081", handler); err != nil {

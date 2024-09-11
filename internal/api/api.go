@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/FischerRobson/help.me-upload/internal/rabbitmq"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -18,13 +19,14 @@ type apiHandler struct {
 	r        *chi.Mux
 	s3Client *s3.S3
 	bucket   string
+	rabbitMQ *rabbitmq.RabbitMQService
 }
 
 func (h apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.r.ServeHTTP(w, r)
 }
 
-func NewHandler() http.Handler {
+func NewHandler(rabbitMQ *rabbitmq.RabbitMQService) http.Handler {
 
 	r := chi.NewRouter()
 
@@ -41,6 +43,7 @@ func NewHandler() http.Handler {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
 
+	// AWS Session
 	sess := session.Must(session.NewSession(&aws.Config{
 		Region:      aws.String("sa-east-1"),
 		Credentials: credentials.NewEnvCredentials(),
@@ -57,9 +60,11 @@ func NewHandler() http.Handler {
 		r,
 		s3Client,
 		bucket,
+		rabbitMQ,
 	}
 
 	r.With(JWTMiddleware).Post("/upload", apiHandler.uploadFile)
+	r.With(JWTMiddleware).Post("/upload/v2", apiHandler.uploadFileWithRabbitMQ)
 
 	return apiHandler
 }

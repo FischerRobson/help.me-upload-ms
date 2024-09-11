@@ -19,6 +19,11 @@ type response struct {
 }
 
 func (h apiHandler) uploadFile(w http.ResponseWriter, r *http.Request) {
+	uploadId := r.FormValue("uploadId")
+	if uploadId == "" {
+		http.Error(w, "Missing uploadId", http.StatusBadRequest)
+		return
+	}
 
 	err := r.ParseMultipartForm(MAX_UPLOAD_SIZE)
 	if err != nil {
@@ -36,6 +41,8 @@ func (h apiHandler) uploadFile(w http.ResponseWriter, r *http.Request) {
 
 	resp := response{}
 
+	uploadToS3 := os.Getenv("UPLOAD_TO_S3") == "true"
+
 	for _, fileHeader := range files {
 		file, err := fileHeader.Open()
 		if err != nil {
@@ -45,14 +52,12 @@ func (h apiHandler) uploadFile(w http.ResponseWriter, r *http.Request) {
 		}
 		defer file.Close()
 
-		// Check if UPLOAD_TO_S3 is enabled
-		uploadToS3 := os.Getenv("UPLOAD_TO_S3") == "true"
-
 		if uploadToS3 {
 			fileURL, err := awsProvider.UploadToS3(h.s3Client, w, h.bucket, fileHeader)
 			if err != nil {
 				continue
 			}
+
 			resp.Urls = append(resp.Urls, fileURL)
 		} else {
 
@@ -73,5 +78,5 @@ func (h apiHandler) uploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	utils.SendJSON(w, resp, http.StatusCreated)
+	utils.SendJSON(w, "Files sent to queue", http.StatusCreated)
 }
