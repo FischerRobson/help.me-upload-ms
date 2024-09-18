@@ -22,11 +22,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Step 4: Extract version from /cmd/uploads-ms/version.go
+      # Step 4: Extract version from /cmd/upload-ms/version.go
       - name: Extract version from version.go
         id: get_version
         run: |
-          VERSION=$(grep 'const Version =' cmd/uploads-ms/version.go | sed 's/[^0-9.]//g')
+          VERSION=$(grep 'const Version =' cmd/upload-ms/version.go | sed 's/[^0-9.]//g')
           if [ -z "$VERSION" ]; then
             echo "Version could not be extracted, exiting..."
             exit 1
