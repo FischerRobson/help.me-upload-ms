@@ -27,8 +27,12 @@ jobs:
         id: get_version
         run: |
           VERSION=$(grep 'const Version =' cmd/uploads-ms/version.go | sed 's/[^0-9.]//g')
-          echo "VERSION=$VERSION"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          if [ -z "$VERSION" ]; then
+            echo "Version could not be extracted, exiting..."
+            exit 1
+          fi
+            echo "Extracted version: $VERSION"
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       # Step 5: Log in to Docker Hub
       - name: Log in to Docker Hub
