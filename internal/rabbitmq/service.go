@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/streadway/amqp"
 )
@@ -18,7 +19,11 @@ type UploadResponse struct {
 }
 
 func NewRabbitMQService() (*RabbitMQService, error) {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/") // Update if needed
+	rabbitHost := os.Getenv("RABBITMQ_HOST")
+	if rabbitHost == "" {
+		return nil, fmt.Errorf("Missing RabbitMQ host")
+	}
+	conn, err := amqp.Dial(rabbitHost)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to connect to RabbitMQ: %v", err)
 	}

@@ -10,27 +10,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Step 2: Set up QEMU
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
+      # Step 3: Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      # Step 4: Extract version from /cmd/uploads-ms/version.go
+      - name: Extract version from version.go
+        id: get_version
+        run: |
+          VERSION=$(grep 'const Version =' cmd/uploads-ms/version.go | sed 's/[^0-9.]//g')
+          echo "VERSION=$VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      # Step 5: Log in to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # Step 6: Build and push Docker image with extracted version
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/helpme-upload-ms:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/helpme-upload-ms:latest,${{ secrets.DOCKER_USERNAME }}/helpme-upload-ms:${{ env.VERSION }}
 
+      # Step 7: Image digest
       - name: Image digest
         run: echo ${{ steps.build-and-push.outputs.digest }}
