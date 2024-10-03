@@ -1,7 +1,6 @@
 package rabbitmq
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -11,11 +10,6 @@ import (
 
 type RabbitMQService struct {
 	Connection *amqp.Connection
-}
-
-type UploadResponse struct {
-	UploadID string   `json:"uploadId"`
-	FileURLs []string `json:"fileUrls"`
 }
 
 func NewRabbitMQService() (*RabbitMQService, error) {
@@ -33,7 +27,7 @@ func NewRabbitMQService() (*RabbitMQService, error) {
 	}, nil
 }
 
-func (s *RabbitMQService) PublishToQueue(queueName string, uploadID string, fileURLs []string) error {
+func (s *RabbitMQService) PublishToQueue(queueName string, message []byte) error {
 	channel, err := s.Connection.Channel()
 	if err != nil {
 		return fmt.Errorf("Failed to open RabbitMQ channel: %v", err)
@@ -52,16 +46,6 @@ func (s *RabbitMQService) PublishToQueue(queueName string, uploadID string, file
 		return fmt.Errorf("Failed to declare queue: %v", err)
 	}
 
-	message := UploadResponse{
-		UploadID: uploadID,
-		FileURLs: fileURLs,
-	}
-
-	messageBody, err := json.Marshal(message)
-	if err != nil {
-		return fmt.Errorf("Failed to marshal message: %v", err)
-	}
-
 	err = channel.Publish(
 		"",        // exchange
 		queueName, // routing key (queue name)
@@ -69,14 +53,14 @@ func (s *RabbitMQService) PublishToQueue(queueName string, uploadID string, file
 		false,     // immediate
 		amqp.Publishing{
 			ContentType: "application/json",
-			Body:        messageBody,
+			Body:        message,
 		})
 
 	if err != nil {
 		return fmt.Errorf("Failed to publish message: %v", err)
 	}
 
-	log.Printf("Message published to queue %s: %s", queueName, messageBody)
+	log.Printf("Message published to queue %s: %s", queueName, message)
 	return nil
 }
 

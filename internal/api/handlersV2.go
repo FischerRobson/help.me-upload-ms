@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +13,11 @@ import (
 	"github.com/FischerRobson/help.me-upload/internal/awsProvider"
 	"github.com/FischerRobson/help.me-upload/internal/utils"
 )
+
+type UploadResponse struct {
+	UploadID string   `json:"uploadId"`
+	FileURLs []string `json:"fileUrls"`
+}
 
 func (h apiHandler) uploadFileWithRabbitMQ(w http.ResponseWriter, r *http.Request) {
 	uploadId := r.FormValue("uploadId")
@@ -39,7 +45,7 @@ func (h apiHandler) uploadFileWithRabbitMQ(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 	utils.SendJSON(w, "Files sent to queue", http.StatusCreated)
 
-	uploadToS3 := os.Getenv("UPLOAD_TO_S3") == "true"
+	uploadToS3 := os.Getenv("ENABLE_AWS_UPLOAD") == "true"
 
 	go func() {
 		for _, fileHeader := range files {
@@ -56,6 +62,7 @@ func (h apiHandler) uploadFileWithRabbitMQ(w http.ResponseWriter, r *http.Reques
 				if err != nil {
 					continue
 				}
+				fmt.Print(fileURL)
 
 				resp.Urls = append(resp.Urls, fileURL)
 			} else {
@@ -77,11 +84,23 @@ func (h apiHandler) uploadFileWithRabbitMQ(w http.ResponseWriter, r *http.Reques
 		}
 
 		queueName := os.Getenv("UPLOAD_FILE_QUEUE")
+		fmt.Print("Getting queue name")
 		if queueName == "" {
 			log.Fatal("UPLOAD_FILE_QUEUE environment variable is not set. Exiting application.")
 		}
 
-		err = h.rabbitMQ.PublishToQueue("fileUploadQueue", uploadId, resp.Urls)
+		message := UploadResponse{
+			UploadID: uploadId,
+			FileURLs: resp.Urls,
+		}
+
+		messageBody, err := json.Marshal(message)
+		if err != nil {
+			fmt.Errorf("Failed to marshal message: %v", err)
+			return
+		}
+
+		err = h.rabbitMQ.PublishToQueue("fileUploadQueue", messageBody)
 		if err != nil {
 			log.Printf("Failed to publish message to RabbitMQ: %v", err)
 			http.Error(w, "Failed to upload file", http.StatusInternalServerError)
