@@ -5,24 +5,22 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
 func JWTMiddleware(next http.Handler) http.Handler {
-
 	var jwtKey = []byte(os.Getenv("JWT_SECRET"))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			http.Error(w, "Authorization header is missing", http.StatusUnauthorized)
+		cookie, err := r.Cookie("jwt")
+		if err != nil {
+			http.Error(w, "Missing authentication token", http.StatusUnauthorized)
+			slog.Error("Unauthorized: JWT cookie not found", err)
 			return
 		}
 
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		tokenString := cookie.Value
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

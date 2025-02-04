@@ -34,7 +34,7 @@ func (h apiHandler) uploadFileWithRabbitMQ(w http.ResponseWriter, r *http.Reques
 	}
 
 	files := r.MultipartForm.File["files"]
-	if files == nil || len(files) == 0 {
+	if len(files) == 0 {
 		http.Error(w, "No files uploaded", http.StatusBadRequest)
 		slog.Error("No files uploaded")
 		return
